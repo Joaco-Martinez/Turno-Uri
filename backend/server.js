@@ -2,8 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import helmet from "helmet";
 import cors from "cors";
-import { pool } from "./db.js";
-import { v4 as uuidv4 } from "uuid";
+import { prisma } from "./db.js";
+
 
 dotenv.config();
 
@@ -28,14 +28,11 @@ app.post("/services", async (req, res) => {
       return res.status(400).json({ ok: false, error: "Faltan campos" });
     }
 
-    const id = uuidv4();
-    const { rows } = await pool.query(
-      `INSERT INTO service (id, name, price, created_at, updated_at) 
-       VALUES ($1, $2, $3, now(), now()) RETURNING *`,
-      [id, name, price]
-    );
+    const service = await prisma.service.create({
+      data: { name, price },
+    });
 
-    return res.status(201).json({ ok: true, data: rows[0] });
+    return res.status(201).json({ ok: true, data: service });
   } catch (err) {
     console.error("Error creando servicio:", err);
     return res.status(500).json({ ok: false, error: "Error creando servicio" });
@@ -45,10 +42,10 @@ app.post("/services", async (req, res) => {
 // Listar servicios
 app.get("/services", async (_req, res) => {
   try {
-    const { rows } = await pool.query(
-      `SELECT * FROM service ORDER BY created_at DESC`
-    );
-    return res.json({ ok: true, data: rows });
+    const services = await prisma.service.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    return res.json({ ok: true, data: services });
   } catch (err) {
     console.error("Error listando servicios:", err);
     return res.status(500).json({ ok: false, error: "Error listando servicios" });
@@ -61,18 +58,12 @@ app.put("/services/:id", async (req, res) => {
     const { id } = req.params;
     const { name, price } = req.body;
 
-    const { rows } = await pool.query(
-      `UPDATE service 
-       SET name=$1, price=$2, updated_at=now()
-       WHERE id=$3 RETURNING *`,
-      [name, price, id]
-    );
+    const service = await prisma.service.update({
+      where: { id },
+      data: { name, price },
+    });
 
-    if (rows.length === 0) {
-      return res.status(404).json({ ok: false, error: "Servicio no encontrado" });
-    }
-
-    return res.json({ ok: true, data: rows[0] });
+    return res.json({ ok: true, data: service });
   } catch (err) {
     console.error("Error actualizando servicio:", err);
     return res.status(500).json({ ok: false, error: "Error actualizando servicio" });
@@ -83,15 +74,8 @@ app.put("/services/:id", async (req, res) => {
 app.delete("/services/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { rowCount } = await pool.query(
-      `DELETE FROM service WHERE id=$1`,
-      [id]
-    );
 
-    if (rowCount === 0) {
-      return res.status(404).json({ ok: false, error: "Servicio no encontrado" });
-    }
-
+    await prisma.service.delete({ where: { id } });
     return res.json({ ok: true });
   } catch (err) {
     console.error("Error eliminando servicio:", err);
@@ -116,13 +100,11 @@ app.post("/backups", async (req, res) => {
       return res.status(400).json({ ok: false, error: "Formato de backup inválido" });
     }
 
-    const id = uuidv4();
-    await pool.query(
-      `INSERT INTO backups (id, payload) VALUES ($1, $2::jsonb)`,
-      [id, JSON.stringify(body)]
-    );
+    const backup = await prisma.backup.create({
+      data: { payload: body },
+    });
 
-    return res.status(201).json({ ok: true, id });
+    return res.status(201).json({ ok: true, id: backup.id });
   } catch (err) {
     console.error("Error guardando backup:", err);
     return res.status(500).json({ ok: false, error: "Error guardando backup" });
@@ -132,11 +114,11 @@ app.post("/backups", async (req, res) => {
 // Devuelve el último backup
 app.get("/backups/latest", async (_req, res) => {
   try {
-    const { rows } = await pool.query(
-      `SELECT payload FROM backups ORDER BY created_at DESC LIMIT 1`
-    );
-    const payload = rows[0]?.payload ?? null;
-    return res.json({ ok: true, data: payload });
+    const latest = await prisma.backup.findFirst({
+      orderBy: { createdAt: "desc" },
+    });
+
+    return res.json({ ok: true, data: latest?.payload ?? null });
   } catch (err) {
     console.error("Error obteniendo backup:", err);
     return res.status(500).json({ ok: false, error: "Error obteniendo backup" });
