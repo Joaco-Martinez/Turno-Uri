@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { db } from '../../lib/db';
+import { getServices, createService, updateService, deleteService } from "../../lib/service";
+
 
 type Service = { id: string; name: string; price: number };
 
@@ -11,55 +12,32 @@ export default function PricesView() {
   const [newPrice, setNewPrice] = useState<number | ''>('');
 
   // cargar servicios al inicio
-  useEffect(() => {
-    loadServices();
-  }, []);
+  
+useEffect(() => {
+  loadServices();
+}, []);
 
-  async function loadServices() {
-    const all = await db.services.toArray();
-    setServices(all);
-  }
+async function loadServices() {
+  const all = await getServices();
+  setServices(all);
+}
 
 async function addService() {
-  const trimmedName = newName.trim();
-
-  // Validar nombre
-  if (!trimmedName) {
-    alert("El nombre del servicio no puede estar vacío.");
-    return;
-  }
-
-  // Validar precio
-  if (newPrice === '' || Number(newPrice) < 0) {
-    alert("El precio debe ser un número mayor o igual a 0.");
-    return;
-  }
-
-  const s: Service = {
-    id: crypto.randomUUID(),
-    name: trimmedName,
-    price: Number(newPrice),
-  };
-
-  await db.services.add(s);
-  setNewName('');
-  setNewPrice('');
+  await createService({ name: newName, price: Number(newPrice), duration: 30 });
+  setNewName("");
+  setNewPrice("");
   loadServices();
 }
 
 async function updatePrice(id: string, price: number) {
-  if (price < 0) {
-    alert("El precio no puede ser negativo.");
-    return;
-  }
-  await db.services.update(id, { price });
+  await updateService(id, { price });
   loadServices();
 }
 
-  async function removeService(id: string) {
-    await db.services.delete(id);
-    loadServices();
-  }
+async function removeService(id: string) {
+  await deleteService(id);
+  loadServices();
+}
 
   return (
     <div className="card p-4 space-y-4">
