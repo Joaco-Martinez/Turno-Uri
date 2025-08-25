@@ -17,6 +17,7 @@ app.use(express.json({ limit: "2mb" }));
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
+
 // Guarda EXACTO tu JSON (version, clients, appointments, exceptions)
 app.post("/backups", async (req, res) => {
   try {
