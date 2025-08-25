@@ -17,17 +17,14 @@ app.use(express.json({ limit: "2mb" }));
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
+// ------------------- SERVICES -------------------
 
-// Guarda EXACTO tu JSON (version, clients, appointments, exceptions)
-app.post("/backups", async (req, res) => {
-  try {
-    const body = req.body;
-
+// Crear servicio
 app.post("/services", async (req, res) => {
   try {
     const { name, price, duration } = req.body;
 
-    if (!name || !price || !duration) {
+    if (!name || price == null || duration == null) {
       return res.status(400).json({ ok: false, error: "Faltan campos" });
     }
 
@@ -48,7 +45,9 @@ app.post("/services", async (req, res) => {
 // Listar servicios
 app.get("/services", async (_req, res) => {
   try {
-    const { rows } = await pool.query(`SELECT * FROM services ORDER BY created_at DESC`);
+    const { rows } = await pool.query(
+      `SELECT * FROM services ORDER BY created_at DESC`
+    );
     return res.json({ ok: true, data: rows });
   } catch (err) {
     console.error(err);
@@ -84,7 +83,10 @@ app.put("/services/:id", async (req, res) => {
 app.delete("/services/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { rowCount } = await pool.query(`DELETE FROM services WHERE id=$1`, [id]);
+    const { rowCount } = await pool.query(
+      `DELETE FROM services WHERE id=$1`,
+      [id]
+    );
 
     if (rowCount === 0) {
       return res.status(404).json({ ok: false, error: "Servicio no encontrado" });
@@ -97,7 +99,13 @@ app.delete("/services/:id", async (req, res) => {
   }
 });
 
-    // Validación mínima del formato que pediste
+// ------------------- BACKUPS -------------------
+
+// Guarda EXACTO tu JSON (version, clients, appointments, exceptions)
+app.post("/backups", async (req, res) => {
+  try {
+    const body = req.body;
+
     if (
       !body ||
       body.version !== 1 ||
@@ -121,7 +129,7 @@ app.delete("/services/:id", async (req, res) => {
   }
 });
 
-// Devuelve el último backup (para restaurar)
+// Devuelve el último backup
 app.get("/backups/latest", async (_req, res) => {
   try {
     const { rows } = await pool.query(
@@ -134,6 +142,7 @@ app.get("/backups/latest", async (_req, res) => {
     return res.status(500).json({ ok: false, error: "Error obteniendo backup" });
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`Backups API listening on http://localhost:${PORT}`);
