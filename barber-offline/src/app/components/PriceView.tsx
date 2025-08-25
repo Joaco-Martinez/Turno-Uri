@@ -2,42 +2,58 @@
 import { useEffect, useState } from 'react';
 import { getServices, createService, updateService, deleteService } from "../../lib/service";
 
-
 type Service = { id: string; name: string; price: number };
-
 
 export default function PricesView() {
   const [services, setServices] = useState<Service[]>([]);
   const [newName, setNewName] = useState('');
-  const [newPrice, setNewPrice] = useState<number | ''>('');
+  const [newPrice, setNewPrice] = useState(''); // 👈 siempre string en el input
 
   // cargar servicios al inicio
-  
-useEffect(() => {
-  loadServices();
-}, []);
+  useEffect(() => {
+    loadServices();
+  }, []);
 
-async function loadServices() {
-  const all = await getServices();
-  setServices(all);
-}
+  async function loadServices() {
+    const all = await getServices();
+    console.log("Servicios recibidos:", all);
+    setServices(all ?? []); // 👈 asegurar que agarras data
+  }
 
-async function addService() {
-  await createService({ name: newName, price: Number(newPrice), duration: 30 });
-  setNewName("");
-  setNewPrice("");
-  loadServices();
-}
+  async function addService() {
+    if (!newName.trim()) {
+      alert("El nombre no puede estar vacío");
+      return;
+    }
+    if (newPrice === '' || Number(newPrice) < 0) {
+      alert("El precio debe ser mayor o igual a 0");
+      return;
+    }
 
-async function updatePrice(id: string, price: number) {
-  await updateService(id, { price });
-  loadServices();
-}
+    await createService({
+      name: newName,
+      price: Number(newPrice),
+      duration: 30,
+    });
 
-async function removeService(id: string) {
-  await deleteService(id);
-  loadServices();
-}
+    setNewName("");
+    setNewPrice("");
+    loadServices();
+  }
+
+  async function updatePrice(id: string, price: number) {
+    if (price < 0) {
+      alert("El precio no puede ser negativo");
+      return;
+    }
+    await updateService(id, { price });
+    loadServices();
+  }
+
+  async function removeService(id: string) {
+    await deleteService(id);
+    loadServices();
+  }
 
   return (
     <div className="card p-4 space-y-4">
@@ -50,7 +66,7 @@ async function removeService(id: string) {
             <span className="flex-1">{s.name}</span>
             <input
               type="number"
-              value={s.price}
+              value={String(s.price)}
               onChange={(e) => updatePrice(s.id, Number(e.target.value))}
               className="border rounded px-2 py-1 w-28 text-right"
             />
@@ -80,7 +96,7 @@ async function removeService(id: string) {
           type="number"
           placeholder="Precio"
           value={newPrice}
-          onChange={(e) => setNewPrice(e.target.value === '' ? '' : Number(e.target.value))}
+          onChange={(e) => setNewPrice(e.target.value)}
           className="w-32 border rounded px-2 py-1"
         />
         <button
