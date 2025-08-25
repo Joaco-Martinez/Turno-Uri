@@ -22,22 +22,22 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 // Crear servicio
 app.post("/services", async (req, res) => {
   try {
-    const { name, price, duration } = req.body;
+    const { name, price } = req.body;
 
-    if (!name || price == null || duration == null) {
+    if (!name || price == null) {
       return res.status(400).json({ ok: false, error: "Faltan campos" });
     }
 
     const id = uuidv4();
     const { rows } = await pool.query(
-      `INSERT INTO service (id, name, price, duration) 
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [id, name, price, duration]
+      `INSERT INTO service (id, name, price, created_at, updated_at) 
+       VALUES ($1, $2, $3, now(), now()) RETURNING *`,
+      [id, name, price]
     );
 
     return res.status(201).json({ ok: true, data: rows[0] });
   } catch (err) {
-    console.error(err);
+    console.error("Error creando servicio:", err);
     return res.status(500).json({ ok: false, error: "Error creando servicio" });
   }
 });
@@ -50,7 +50,7 @@ app.get("/services", async (_req, res) => {
     );
     return res.json({ ok: true, data: rows });
   } catch (err) {
-    console.error(err);
+    console.error("Error listando servicios:", err);
     return res.status(500).json({ ok: false, error: "Error listando servicios" });
   }
 });
@@ -59,13 +59,13 @@ app.get("/services", async (_req, res) => {
 app.put("/services/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, price, duration } = req.body;
+    const { name, price } = req.body;
 
     const { rows } = await pool.query(
       `UPDATE service 
-       SET name=$1, price=$2, duration=$3, updated_at=now()
-       WHERE id=$4 RETURNING *`,
-      [name, price, duration, id]
+       SET name=$1, price=$2, updated_at=now()
+       WHERE id=$3 RETURNING *`,
+      [name, price, id]
     );
 
     if (rows.length === 0) {
@@ -74,7 +74,7 @@ app.put("/services/:id", async (req, res) => {
 
     return res.json({ ok: true, data: rows[0] });
   } catch (err) {
-    console.error(err);
+    console.error("Error actualizando servicio:", err);
     return res.status(500).json({ ok: false, error: "Error actualizando servicio" });
   }
 });
@@ -94,10 +94,11 @@ app.delete("/services/:id", async (req, res) => {
 
     return res.json({ ok: true });
   } catch (err) {
-    console.error(err);
+    console.error("Error eliminando servicio:", err);
     return res.status(500).json({ ok: false, error: "Error eliminando servicio" });
   }
 });
+
 // ------------------- BACKUPS -------------------
 
 // Guarda EXACTO tu JSON (version, clients, appointments, exceptions)
@@ -123,7 +124,7 @@ app.post("/backups", async (req, res) => {
 
     return res.status(201).json({ ok: true, id });
   } catch (err) {
-    console.error(err);
+    console.error("Error guardando backup:", err);
     return res.status(500).json({ ok: false, error: "Error guardando backup" });
   }
 });
@@ -137,12 +138,12 @@ app.get("/backups/latest", async (_req, res) => {
     const payload = rows[0]?.payload ?? null;
     return res.json({ ok: true, data: payload });
   } catch (err) {
-    console.error(err);
+    console.error("Error obteniendo backup:", err);
     return res.status(500).json({ ok: false, error: "Error obteniendo backup" });
   }
 });
 
-
+// ------------------- START -------------------
 app.listen(PORT, () => {
   console.log(`Backups API listening on http://localhost:${PORT}`);
 });
