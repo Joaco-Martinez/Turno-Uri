@@ -30,7 +30,7 @@ app.post("/services", async (req, res) => {
 
     const id = uuidv4();
     const { rows } = await pool.query(
-      `INSERT INTO services (id, name, price, duration) 
+      `INSERT INTO service (id, name, price, duration) 
        VALUES ($1, $2, $3, $4) RETURNING *`,
       [id, name, price, duration]
     );
@@ -46,7 +46,7 @@ app.post("/services", async (req, res) => {
 app.get("/services", async (_req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT * FROM services ORDER BY created_at DESC`
+      `SELECT * FROM service ORDER BY created_at DESC`
     );
     return res.json({ ok: true, data: rows });
   } catch (err) {
@@ -62,7 +62,7 @@ app.put("/services/:id", async (req, res) => {
     const { name, price, duration } = req.body;
 
     const { rows } = await pool.query(
-      `UPDATE services 
+      `UPDATE service 
        SET name=$1, price=$2, duration=$3, updated_at=now()
        WHERE id=$4 RETURNING *`,
       [name, price, duration, id]
@@ -84,7 +84,7 @@ app.delete("/services/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { rowCount } = await pool.query(
-      `DELETE FROM services WHERE id=$1`,
+      `DELETE FROM service WHERE id=$1`,
       [id]
     );
 
@@ -98,7 +98,6 @@ app.delete("/services/:id", async (req, res) => {
     return res.status(500).json({ ok: false, error: "Error eliminando servicio" });
   }
 });
-
 // ------------------- BACKUPS -------------------
 
 // Guarda EXACTO tu JSON (version, clients, appointments, exceptions)
