@@ -20,23 +20,41 @@ export default function PricesView() {
     setServices(all);
   }
 
-  async function addService() {
-    if (!newName || !newPrice) return;
-    const s: Service = {
-      id: crypto.randomUUID(),
-      name: newName,
-      price: Number(newPrice),
-    };
-    await db.services.add(s);
-    setNewName('');
-    setNewPrice('');
-    loadServices();
+async function addService() {
+  const trimmedName = newName.trim();
+
+  // Validar nombre
+  if (!trimmedName) {
+    alert("El nombre del servicio no puede estar vacío.");
+    return;
   }
 
-  async function updatePrice(id: string, price: number) {
-    await db.services.update(id, { price });
-    loadServices();
+  // Validar precio
+  if (newPrice === '' || Number(newPrice) < 0) {
+    alert("El precio debe ser un número mayor o igual a 0.");
+    return;
   }
+
+  const s: Service = {
+    id: crypto.randomUUID(),
+    name: trimmedName,
+    price: Number(newPrice),
+  };
+
+  await db.services.add(s);
+  setNewName('');
+  setNewPrice('');
+  loadServices();
+}
+
+async function updatePrice(id: string, price: number) {
+  if (price < 0) {
+    alert("El precio no puede ser negativo.");
+    return;
+  }
+  await db.services.update(id, { price });
+  loadServices();
+}
 
   async function removeService(id: string) {
     await db.services.delete(id);
